@@ -8,12 +8,10 @@
 <link rel="icon" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--red:#a1001f;--deep:#3d000d;--gold:#f0c869;--ink:#1d1215;--mut:#75686c;--bg:#faf6f6;--card:#fff;--line:#eadfe1;--r:22px}
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
-body{font:16px/1.5 Onest,system-ui,sans-serif;color:var(--ink);background:var(--bg);padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+body{font:16px/1.5 -apple-system,system-ui,sans-serif;color:var(--ink);background:var(--bg);padding-bottom:calc(100px + env(safe-area-inset-bottom))}
 .bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 18px 10px;background:rgba(250,246,246,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);font-weight:700}
 .bar i{width:28px;height:28px;border-radius:9px;background:var(--red);color:#fff;display:grid;place-items:center;font-style:normal;font-size:15px}
 main{max-width:640px;margin:0 auto;padding:6px 18px 20px}
@@ -73,7 +71,7 @@ nav a.on{background:var(--red);color:#fff}nav a.on i{transform:scale(1.14)}
 .big img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
 .pn h3{font-size:24px;line-height:1.2;margin-bottom:8px}.pn p{white-space:pre-line;margin-top:12px}.pn .c{text-align:center}
 #gm{position:fixed;inset:0;z-index:30;background:#000;display:none}#gm.on{display:block}
-#gm iframe{width:100%;height:100%;border:0}#gm button{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:2;padding:10px 22px;border-radius:99px;border:1px solid #f0c86988;background:#2a0710;color:var(--gold);font:700 15px Onest,sans-serif}
+#gm iframe{width:100%;height:100%;border:0}#gm button{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:2;padding:10px 22px;border-radius:99px;border:1px solid #f0c86988;background:#2a0710;color:var(--gold);font:700 15px -apple-system,sans-serif}
 .note{color:var(--mut);font-size:14px}
 a:focus-visible,button:focus-visible{outline:3px solid var(--red);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
@@ -112,7 +110,7 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--red);outline-offset
     <select id="kind" name="Тип"><option>Идея или предложение</option><option>Новость школы</option><option>Обратная связь</option></select>
     <label for="msg">Ваша идея или предложение *</label>
     <textarea id="msg" name="Сообщение" required></textarea>
-    <button class="btn full" id="send" type="submit">Отправить</button>
+    <input name="site" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px"><button class="btn full" id="send" type="submit">Отправить</button>
     <p id="status" class="note" role="status" style="margin-top:12px;text-align:center"></p>
   </form>
   <details class="rules rv"><summary>Правила пользования</summary>
@@ -145,12 +143,9 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--red);outline-offset
 <script>
 /* ===== НАСТРОЙКИ ===== */
 const C = {
-  formKey: "5ff1064b-f892-4210-acbc-0cb3f04f6c5b",  // ключ Web3Forms
   tg: "https://t.me/dvizhenieschool9",       // ссылка на Телеграм-канал
   max: "https://max.ru/join/R9RTsj6Z4VcAem7B3TH7kAKDHbU3Wkm5WuoYiXOxteI",      // ссылка на Макс-канал
   game: "game.html",     // ссылка на игру (Netlify)
-  newsCsv: "",  // Google Таблица (новости), опубликованная как CSV
-  teamCsv: "",  // Google Таблица (состав), опубликованная как CSV
   logo: "logo.jpg"      // например img/logo.png
 };
 /* Запасной состав (если таблица не подключена): роль, ФИО, класс, о себе, имя файла фото */
@@ -217,19 +212,19 @@ function drawNews(){
 }
 $("#q").addEventListener("input", drawNews);
 drawTeam(); drawNews();
-if (C.newsCsv) load(C.newsCsv).then(r => { if (r.length) { NEWS = r.map(x => ({d:x[0], t:x[1], x:x[2] || ""})).reverse(); drawNews(); } }).catch(() => {});
-if (C.teamCsv) load(C.teamCsv).then(r => { if (r.length) { TEAM = r.map(x => [x[0]||"", x[1]||"", x[2]||"", x[3]||"", x[4]||""]); drawTeam(); } }).catch(() => {});
+const apply=d=>{if(!d)return;if(d.news)NEWS=d.news;if(d.team)TEAM=d.team;drawTeam();drawNews()};
+try{apply(JSON.parse(localStorage.d))}catch{}
+fetch("data.json?"+Date.now()).then(r=>r.json()).then(d=>{if(d){localStorage.d=JSON.stringify(d);apply(d)}}).catch(()=>{});
 
 $("#form").addEventListener("submit", async e => {
   e.preventDefault();
-  const st = $("#status"), b = $("#send");
-  if (!C.formKey) { st.textContent = "Форма пока не подключена."; return; }
+  const st = $("#status"), b = $("#send"), f = e.target;
   b.disabled = true; b.textContent = "Отправляем…"; st.textContent = "";
-  const fd = new FormData(e.target); fd.append("access_key", C.formKey); fd.append("subject", "Новое обращение с сайта Совета Первых");
   try {
-    const r = await (await fetch("https://api.web3forms.com/submit", {method:"POST", body:fd})).json();
-    if (!r.success) throw 0;
-    e.target.outerHTML = '<div class="ok"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42"/><path d="M30 52l14 14 27-30"/></svg><h3 style="margin-top:14px">Спасибо!</h3><p class="note">Обращение отправлено на модерацию.</p></div>';
+    const m = f.msg.value.trim(); if (!m || f.site.value) throw 0;
+    const r = await fetch("https://api.telegram.org/bot9197699812:AAF2DlCsBCl52i62VT__wdEApoCyrX6hc40/sendMessage", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({chat_id:"1606954104", text:("📩 Новое обращение\n👤 " + f.who.value + "\n🏷 " + f.kind.value + "\n\n" + m).slice(0,4000)})});
+    if (!r.ok) throw 0;
+    f.outerHTML = '<div class="ok"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42"/><path d="M30 52l14 14 27-30"/></svg><h3 style="margin-top:14px">Спасибо!</h3><p class="note">Обращение отправлено на модерацию.</p></div>';
   } catch { st.textContent = "Не получилось отправить. Проверьте интернет и попробуйте ещё раз."; b.disabled = false; b.textContent = "Отправить"; }
 });
 
